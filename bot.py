@@ -4,7 +4,7 @@ from aiogram.filters import Command
 import asyncpg
 
 BOT_TOKEN = "8488952025:AAHD9B3_BgBKX8gpFRVRkjLTWaFt1lToLwM"
-DATABASE_URL = "postgresql://postgres:xeblfHYptVtWiOHeozZpJPXNQSTwMwtU@shortline.proxy.rlwy.net:58734/railway"
+DATABASE_URL = "postgresql://postgres:zulfeli4@db.ycxdqjuetazigtbjpvwe.supabase.co:5432/postgres?sslmode=require"
 
 async def create_db_pool():
     return await asyncpg.create_pool(DATABASE_URL)
