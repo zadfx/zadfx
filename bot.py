@@ -3,18 +3,15 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 import asyncpg
 
-BOT_TOKEN = "8488952025:AAHD9B3_BgBKX8gpFRVRkjLTWaFt1lToLwM"
-SUPABASE_URL = "postgresql: //postgres:
-zulfeli4#@db.mbofarjmwxbekuzfmo
-bs.supabase. co:5432/postgres"
+BOT_TOKEN = 8488952025:AAHD9B3_BgBKX8gpFRVRkjLTWaFt1lToLwM
+DATABASE_URL = postgresql://postgres:xeblfHYptVtWiOHeozZpJPXNQSTwMwtU@shortline.proxy.rlwy.net:58734/railway
 
 # Database connection
 async def create_db_pool():
-    return await asyncpg.create_pool(SUPABASE_URL)
+    return await asyncpg.create_pool(DATABASE_URL)
 
 dp = Dispatcher()
 
-# Start command
 @dp.message(Command("start"))
 async def start(message: types.Message):
     await message.answer(
@@ -32,31 +29,34 @@ async def collect_data(message: types.Message):
 
     step = dp.fsm_data[user_id]["step"]
 
-    # 1) Name
+    # 1) Ad
     if step == "name":
         dp.fsm_data[user_id]["name"] = message.text
         dp.fsm_data[user_id]["step"] = "age"
         return await message.answer("Yaşını yaz:")
 
-    # 2) Age
+    # 2) Yaş
     if step == "age":
-        dp.fsm_data[user_id]["age"] = int(message.text)
+        try:
+            dp.fsm_data[user_id]["age"] = int(message.text)
+        except ValueError:
+            return await message.answer("Yaş rəqəm olmalıdır. Yenidən yaz:")
         dp.fsm_data[user_id]["step"] = "city"
         return await message.answer("Şəhər:")
 
-    # 3) City
+    # 3) Şəhər
     if step == "city":
         dp.fsm_data[user_id]["city"] = message.text
         dp.fsm_data[user_id]["step"] = "gender"
         return await message.answer("Cinsin? (Kişi/Qadın)")
 
-    # 4) Gender
+    # 4) Cins
     if step == "gender":
         dp.fsm_data[user_id]["gender"] = message.text
         dp.fsm_data[user_id]["step"] = "target_gender"
         return await message.answer("Kiminlə tanış olmaq istəyirsən? (Kişi/Qadın)")
 
-    # 5) Target gender
+    # 5) Qarşı tərəf
     if step == "target_gender":
         dp.fsm_data[user_id]["target_gender"] = message.text
         dp.fsm_data[user_id]["step"] = "bio"
@@ -80,7 +80,6 @@ async def collect_data(message: types.Message):
             media2 = media_list[1] if len(media_list) > 1 else None
             media3 = media_list[2] if len(media_list) > 2 else None
 
-            # Save to DB
             pool = await create_db_pool()
             async with pool.acquire() as conn:
                 await conn.execute("""
@@ -100,9 +99,7 @@ async def collect_data(message: types.Message):
             del dp.fsm_data[user_id]
             return
 
-        # Media message
         file_id = None
-
         if message.photo:
             file_id = message.photo[-1].file_id
         elif message.video:
@@ -113,7 +110,6 @@ async def collect_data(message: types.Message):
             return await message.answer("✅ Qəbul edildi. Daha varsa göndər, yoxsa 'bitdi' yaz.")
 
         return await message.answer("Şəkil və ya video göndər, yaxud 'bitdi' yaz.")
-
 
 async def main():
     bot = Bot(token=BOT_TOKEN)
