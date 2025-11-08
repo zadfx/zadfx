@@ -3,8 +3,8 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 import asyncpg
 
-BOT_TOKEN = "YOUR_TOKEN"
-DATABASE_URL = "YOUR_LINK"
+BOT_TOKEN = 8488952025:AAHD9B3_BgBKX8gpFRVRkjLTWaFt1lToLwM
+DATABASE_URL = postgresql://postgres:xeblfHYptVtWiOHeozZpJPXNQSTwMwtU@shortline.proxy.rlwy.net:58734/railway
 
 async def create_db_pool():
     return await asyncpg.create_pool(DATABASE_URL)
