@@ -20,13 +20,23 @@ async def add_interest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     users[user_id]["text"] = update.message.text.lower()
     await update.message.reply_text("✅ Maraqlar yadda saxlanıldı! Uyğun insan tapmaq üçün /findmatch yaz.")
 
+from nltk.stem.snowball import SnowballStemmer
+stemmer = SnowballStemmer("azerbaijani")
+
+def preprocess(text):
+    words = re.findall(r'\w+', text.lower())
+    # Hər sözü kökünə sal
+    stems = [stemmer.stem(w) for w in words]
+    return set(stems)
+
 def match_score(text1, text2):
-    words1 = set(re.findall(r'\w+', text1))
-    words2 = set(re.findall(r'\w+', text2))
+    words1 = preprocess(text1)
+    words2 = preprocess(text2)
     if not words1 or not words2:
         return 0
     score = len(words1 & words2) / len(words1 | words2)
     return round(score * 100, 2)
+
 
 async def find_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.chat_id
