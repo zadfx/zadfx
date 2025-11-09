@@ -2,66 +2,81 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 import re
 
-users = {}
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.chat_id
-    users[user_id] = {"name": update.message.from_user.first_name, "text": ""}
-    await update.message.reply_text(
-        f"Salam {users[user_id]['name']}! 👋\nBu VibeMatchBot-dur — maraqlarına uyğun insanlarla tanış olmaq üçün.\n\nİndi maraqlarını yaz (məsələn: 'Mən kitab oxumağı sevirəm, hobbilərim musiqi və idmandır.')."
-    )
-
-async def add_interest(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.chat_id
-    if user_id not in users:
-        await update.message.reply_text("Əvvəl /start yaz.")
-        return
-
-    users[user_id]["text"] = update.message.text.lower()
-    await update.message.reply_text("✅ Maraqlar yadda saxlanıldı! Uyğun insan tapmaq üçün /findmatch yaz.")
-
-from nltk.stem.snowball import SnowballStemmer
-stemmer = SnowballStemmer("azerbaijani")
-import re
-
-# Əl ilə sinonimlər siyahısı (istədiyin qədər artıra bilərsən)
+# ------------------------------
+#  Sadə sinonimlər və “mini stemmer”
+# ------------------------------
 synonyms = {
     "kitab": ["kitablar", "oxumaq", "ədəbiyyat", "roman"],
     "film": ["kino", "serial", "filmlər", "baxmaq"],
     "musiqi": ["mahnı", "mahnılar", "dinləmək", "konsert"],
     "idman": ["futbol", "basketbol", "üzgüçülük", "voleybol", "fitnes", "gym"],
     "səyahət": ["travel", "gezi", "səfər", "turizm"],
-    "alış": ["shopping", "market", "satan", "mağaza"],
-    "oyun": ["game", "gta", "cs", "valorant", "oyunlar"],
-    "rəsm": ["çəkiliş", "art", "paint", "rəsm çəkmək"],
-    "trading": ["forex", "investisiya", "kripto", "kriptoqrafiya"],
+    "alış": ["shopping", "market", "mağaza"],
+    "oyun": ["game", "gta", "valorant", "oyunlar"],
+    "trading": ["forex", "investisiya", "kripto"],
 }
 
-def normalize_word(word):
-    """Sözü kökə sal və sinonim siyahısına əsasən əsas formada qaytar"""
-    base = stemmer.stem(word)
-    for key, values in synonyms.items():
-        if base == key or base in values:
-            return key
-    return base
+# Azərbaycan sonluqlarını silən mini stemmer
+def simple_stem(word):
+    endings = ["lar", "lər", "ın", "in", "un", "ün", "ı", "i", "u", "ü", "da", "də", "dan", "dən", "la", "lə"]
+    for end in endings:
+        if word.endswith(end) and len(word) > len(end) + 1:
+            return word[:-len(end)]
+    return word
 
+# Mətni analiz edib sinonimlərlə bərabərləşdir
 def preprocess(text):
-    """Mətni normalizə edib sözlər siyahısına çevir"""
     words = re.findall(r'\w+', text.lower())
-    stems = [normalize_word(w) for w in words]
-    return set(stems)
+    result = set()
 
+    for w in words:
+        root = simple_stem(w)
+        found = False
+        for key, vals in synonyms.items():
+            if root == key or root in vals:
+                result.add(key)
+                found = True
+                break
+        if not found:
+            result.add(root)
+    return result
+
+# Uyğunluq faizi hesabla
 def match_score(text1, text2):
-    """İki mətndə sinonimləri də nəzərə alaraq uyğunluq hesabla"""
-    words1 = preprocess(text1)
-    words2 = preprocess(text2)
-    if not words1 or not words2:
+    set1 = preprocess(text1)
+    set2 = preprocess(text2)
+    if not set1 or not set2:
         return 0
-    score = len(words1 & words2) / len(words1 | words2)
+    score = len(set1 & set2) / len(set1 | set2)
     return round(score * 100, 2)
 
 
+# ------------------------------
+#  Telegram bot hissəsi
+# ------------------------------
+users = {}
 
+# /start komandası
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.chat_id
+    users[user_id] = {"name": update.message.from_user.first_name, "text": ""}
+    await update.message.reply_text(
+        f"Salam {users[user_id]['name']}! 👋\n"
+        f"Bu VibeMatchBot-dur — maraqlarına uyğun insanlarla tanış olmaq üçün.\n\n"
+        f"İndi maraqlarını yaz (məsələn: 'Mən kitab oxumağı sevirəm, hobbilərim musiqi və idmandır.')."
+    )
+
+# İstifadəçi maraqlarını qeyd edir
+async def add_interest(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.chat_id
+    if user_id not in users:
+        await update.message.reply_text("Əvvəl /start yaz.")
+        return
+
+    users[user_id]["text"] = update.message.text
+    await update.message.reply_text("✅ Maraqlar yadda saxlanıldı! Uyğun insan tapmaq üçün /findmatch yaz.")
+
+# Uyğun insan tap
 async def find_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.chat_id
     if user_id not in users or not users[user_id]["text"]:
@@ -90,6 +105,7 @@ async def find_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Hələ uyğun insan tapılmadı 😔")
 
+# Botu işə sal
 app = ApplicationBuilder().token("7175581321:AAFwo1JvMeWmfZ0VHzL--5KS8b9bpBQkY5Q").build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, add_interest))
