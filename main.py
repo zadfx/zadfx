@@ -170,7 +170,7 @@ async def find_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ------------------------------
 # Botu işə sal
 # ------------------------------
-app = ApplicationBuilder().token("BURAYA_SƏNİN_TELEGRAM_BOT_TOKENİNİ_YAZ").build()
+app = ApplicationBuilder().token("7175581321:AAFwo1JvMeWmfZ0VHzL--5KS8b9bpBQkY5Q").build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button_handler))
 app.add_handler(CommandHandler("findmatch", find_match))
