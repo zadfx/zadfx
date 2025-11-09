@@ -22,20 +22,44 @@ async def add_interest(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 from nltk.stem.snowball import SnowballStemmer
 stemmer = SnowballStemmer("azerbaijani")
+import re
+
+# Əl ilə sinonimlər siyahısı (istədiyin qədər artıra bilərsən)
+synonyms = {
+    "kitab": ["kitablar", "oxumaq", "ədəbiyyat", "roman"],
+    "film": ["kino", "serial", "filmlər", "baxmaq"],
+    "musiqi": ["mahnı", "mahnılar", "dinləmək", "konsert"],
+    "idman": ["futbol", "basketbol", "üzgüçülük", "voleybol", "fitnes", "gym"],
+    "səyahət": ["travel", "gezi", "səfər", "turizm"],
+    "alış": ["shopping", "market", "satan", "mağaza"],
+    "oyun": ["game", "gta", "cs", "valorant", "oyunlar"],
+    "rəsm": ["çəkiliş", "art", "paint", "rəsm çəkmək"],
+    "trading": ["forex", "investisiya", "kripto", "kriptoqrafiya"],
+}
+
+def normalize_word(word):
+    """Sözü kökə sal və sinonim siyahısına əsasən əsas formada qaytar"""
+    base = stemmer.stem(word)
+    for key, values in synonyms.items():
+        if base == key or base in values:
+            return key
+    return base
 
 def preprocess(text):
+    """Mətni normalizə edib sözlər siyahısına çevir"""
     words = re.findall(r'\w+', text.lower())
-    # Hər sözü kökünə sal
-    stems = [stemmer.stem(w) for w in words]
+    stems = [normalize_word(w) for w in words]
     return set(stems)
 
 def match_score(text1, text2):
+    """İki mətndə sinonimləri də nəzərə alaraq uyğunluq hesabla"""
     words1 = preprocess(text1)
     words2 = preprocess(text2)
     if not words1 or not words2:
         return 0
     score = len(words1 & words2) / len(words1 | words2)
     return round(score * 100, 2)
+
 
 
 async def find_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
