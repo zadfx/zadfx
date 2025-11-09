@@ -94,3 +94,16 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+import threading
+from aiohttp import web
+
+async def handle(request):
+    return web.Response(text="AzeMatch bot is running!")
+
+def run_web():
+    app = web.Application()
+    app.router.add_get("/", handle)
+    web.run_app(app, port=10000)
+
+# Web serveri ayrıca thread-də işə salırıq
+threading.Thread(target=run_web).start()
